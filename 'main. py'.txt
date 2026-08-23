@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IndiaTube</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+    body {
+      background-color: #0f0f0f;
+      color: #fff;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: #202020;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .logo {
+      font-size: 20px;
+      font-weight: bold;
+      color: #ff4747;
+    }
+    .logo span {
+      color: #fff;
+    }
+    nav button {
+      background: #333;
+      color: #fff;
+      border: 1px solid #555;
+      padding: 6px 12px;
+      margin-left: 4px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .container {
+      padding: 16px;
+      max-width: 600px;
+      margin: auto;
+    }
+    .card {
+      background: #1e1e1e;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .card.active {
+      display: block;
+    }
+    h2 {
+      margin-bottom: 12px;
+      font-size: 18px;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 12px;
+      background: #121212;
+      border: 1px solid #444;
+      color: #fff;
+      border-radius: 4px;
+    }
+    .btn-main {
+      width: 100%;
+      padding: 10px;
+      background: #ff4747;
+      border: none;
+      color: #fff;
+      font-weight: bold;
+      border-radius: 4px;
+    }
+    .video-card {
+      background: #181818;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .video-card video {
+      width: 100%;
+      max-height: 240px;
+      background: #000;
+    }
+    .video-info {
+      padding: 10px;
+    }
+    .video-title {
+      font-size: 15px;
+      font-weight: bold;
+    }
+    .video-channel {
+      font-size: 13px;
+      color: #aaa;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">India<span>Tube</span></div>
+    <nav>
+      <button onclick="showSection('feed-sec')">Home</button>
+      <button onclick="showSection('auth-sec')" id="auth-btn">Login</button>
+      <button onclick="showSection('upload-sec')">+ Upload</button>
+    </nav>
+  </header>
+
+  <div class="container">
+    
+    <!-- Login & Register Section -->
+    <div id="auth-sec" class="card">
+      <h2>Account Login / Register</h2>
+      <input type="text" id="username-input" placeholder="Enter Username">
+      <button class="btn-main" onclick="handleAuth()">Submit</button>
+    </div>
+
+    <!-- Create Channel Section -->
+    <div id="channel-sec" class="card">
+      <h2>Create IndiaTube Channel</h2>
+      <input type="text" id="channel-input" placeholder="Channel Name">
+      <button class="btn-main" onclick="createChannel()">Save Channel</button>
+    </div>
+
+    <!-- Upload Video Section -->
+    <div id="upload-sec" class="card">
+      <h2>Upload Video</h2>
+      <input type="text" id="vid-title" placeholder="Video Title">
+      <input type="file" id="vid-file" accept="video/*">
+      <button class="btn-main" onclick="uploadVideo()">Publish</button>
+    </div>
+
+    <!-- Feed / Home Section -->
+    <div id="feed-sec" class="card active">
+      <h2>Latest Videos</h2>
+      <div id="video-list">
+        <p style="color: #888;">No videos uploaded yet. Be the first to upload!</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let currentUser = localStorage.getItem('it_user') || null;
+    let userChannel = localStorage.getItem('it_channel') || null;
+    let videos = JSON.parse(localStorage.getItem('it_videos')) || [];
+
+    function updateNav() {
+      const authBtn = document.getElementById('auth-btn');
+      if (currentUser) {
+        authBtn.innerText = userChannel ? userChannel : currentUser;
+      } else {
+        authBtn.innerText = "Login";
+      }
+    }
+
+    function showSection(id) {
+      document.querySelectorAll('.card').forEach(el => el.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function handleAuth() {
+      const name = document.getElementById('username-input').value.trim();
+      if (!name) return alert('Kripya naam enter karein!');
+      
+      currentUser = name;
+      localStorage.setItem('it_user', name);
+      updateNav();
+
+      if (!userChannel) {
+        showSection('channel-sec');
+      } else {
+        showSection('feed-sec');
+      }
+    }
+
+    function createChannel() {
+      const chName = document.getElementById('channel-input').value.trim();
+      if (!chName) return alert('Channel ka naam likhein!');
+      
+      userChannel = chName;
+      localStorage.setItem('it_channel', chName);
+      updateNav();
+      alert('Channel create ho gaya: ' + chName);
+      showSection('feed-sec');
+    }
+
+    function uploadVideo() {
+      if (!currentUser) {
+        alert('Upload karne se pehle login karein!');
+        showSection('auth-sec');
+        return;
+      }
+      if (!userChannel) {
+        alert('Pehle apna channel banayein!');
+        showSection('channel-sec');
+        return;
+      }
+
+      const title = document.getElementById('vid-title').value.trim();
+      const fileInput = document.getElementById('vid-file');
+      const file = fileInput.files[0];
+
+      if (!title || !file) {
+        return alert('Title aur Video file dono select karein!');
+      }
+
+      const videoUrl = URL.createObjectURL(file);
+      const newVideo = {
+        title: title,
+        channel: userChannel,
+        url: videoUrl
+      };
+
+      videos.unshift(newVideo);
+      document.getElementById('vid-title').value = '';
+      fileInput.value = '';
+
+      renderVideos();
+      showSection('feed-sec');
+    }
+
+    function renderVideos() {
+      const list = document.getElementById('video-list');
+      if (videos.length === 0) {
+        list.innerHTML = '<p style="color: #888;">No videos uploaded yet.</p>';
+        return;
+      }
+      
+      list.innerHTML = '';
+      videos.forEach(v => {
+        const item = document.createElement('div');
+        item.className = 'video-card';
+        item.innerHTML = `
+          <video src="${v.url}" controls></video>
+          <div class="video-info">
+            <div class="video-title">${v.title}</div>
+            <div class="video-channel">${v.channel}</div>
+          </div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    updateNav();
+    renderVideos();
+  </script>
+</body>
+</html>
